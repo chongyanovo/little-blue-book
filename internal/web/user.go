@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ChongYanOvO/little-blue-book/internal/domain"
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	regexp "github.com/dlclark/regexp2"
@@ -32,13 +31,15 @@ type UserClaims struct {
 
 type UserHandler struct {
 	svc            *service.UserService
+	codeSvc        *service.CodeService
 	emailRegExp    *regexp.Regexp
 	passwordRegExp *regexp.Regexp
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	return &UserHandler{
 		svc:            svc,
+		codeSvc:        codeSvc,
 		emailRegExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordRegExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
 	}
@@ -51,6 +52,8 @@ func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login", uh.Login)
 	ug.POST("/edit", uh.Edit)
 	ug.GET("/profile", uh.Profile)
+	ug.PUT("/login/code", uh.SendLoginSmsCode)
+	ug.POST("/login/code", uh.LoginSms)
 }
 
 func (uh *UserHandler) SignUp(ctx *gin.Context) {
@@ -151,10 +154,49 @@ func (uh *UserHandler) Profile(ctx *gin.Context) {
 	if !ok {
 		ctx.String(http.StatusOK, "系统异常")
 	}
-	fmt.Println(claims.UserId)
 	user, err := uh.svc.Profile(ctx, claims.UserId)
 	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
 	ctx.JSON(http.StatusOK, user)
+}
+
+// SendLoginSmsCode 登录验证码发送
+func (uh UserHandler) SendLoginSmsCode(ctx *gin.Context) {
+	const biz = "login"
+	type Request struct {
+		Phone string `json:"phone"`
+	}
+	var req Request
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	err := uh.codeSvc.Send(ctx, biz, req.Phone)
+	if err != nil {
+		ctx.String(http.StatusOK, "登录验证码发送失败")
+	} else {
+		ctx.String(http.StatusOK, "登录验证码发送成功")
+	}
+
+}
+
+func (uh UserHandler) LoginSms(ctx *gin.Context) {
+	const biz = "login"
+	type Request struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	var req Request
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	ok, err := uh.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if !ok {
+		ctx.String(http.StatusOK, "验证码错误")
+	} else if err != nil {
+		ctx.String(http.StatusOK, "系统异常")
+	} else {
+		ctx.String(http.StatusOK, "登录成功")
+	}
+
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/cache"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/dao"
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
+	"github.com/ChongYanOvO/little-blue-book/internal/service/sms/memory"
 	"github.com/ChongYanOvO/little-blue-book/internal/web"
 	"github.com/ChongYanOvO/little-blue-book/internal/web/middleware"
 	"github.com/gin-contrib/cors"
@@ -19,9 +20,10 @@ import (
 
 func main() {
 	db := initDB()
+	rdb := initRDB()
 	server := initWebServer()
 
-	u := initUser(db)
+	u := initUser(db, rdb)
 	u.RegisterRoutes(server)
 
 	server.Run(":8088")
@@ -51,18 +53,21 @@ func initWebServer() *gin.Engine {
 
 	server.Use(middleware.NewLoginBuilder().
 		IgnorePaths("/users/signup").
-		IgnorePaths("/users/login").Build())
+		IgnorePaths("/users/login").
+		IgnorePaths("/users/login/code").Build())
 	return server
 }
 
-func initUser(db *gorm.DB) *web.UserHandler {
+func initUser(db *gorm.DB, rdb *redis.Client) *web.UserHandler {
 	ud := dao.NewUserDao(db)
-	ch := cache.NewUserCache(redis.NewClient(&redis.Options{
-		Addr: config.Config.Redis.Addr,
-	}), 30*time.Minute)
-	repo := repository.NewUserRepository(ud, ch)
+	uc := cache.NewUserCache(rdb, 30*time.Minute)
+	cc := cache.NewCodeCache(rdb)
+	repo := repository.NewUserRepository(ud, uc)
+	codeRepo := repository.NewCodeRepository(cc)
 	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	smsSvc := memory.NewService()
+	codeSvc := service.NewCodeService(codeRepo, smsSvc)
+	u := web.NewUserHandler(svc, codeSvc)
 	return u
 }
 
@@ -71,10 +76,15 @@ func initDB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-
 	err = dao.InitTable(db)
 	if err != nil {
 		panic(err)
 	}
 	return db.Debug()
+}
+
+func initRDB() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
 }
