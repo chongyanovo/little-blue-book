@@ -10,20 +10,25 @@ import (
 
 var codeTpId = "1877556"
 
-type CodeService struct {
-	repo   *repository.CodeRepository
+type CodeService interface {
+	Send(ctx context.Context, biz string, phone string) error
+	Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error)
+}
+
+type SMSCodeService struct {
+	repo   repository.CodeRepository
 	smsSvc sms.Service
 }
 
-func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
-	return &CodeService{
+func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeService {
+	return &SMSCodeService{
 		repo:   repo,
 		smsSvc: smsSvc,
 	}
 }
 
 // Send 发验证码 我需要什么参数
-func (svc *CodeService) Send(ctx context.Context,
+func (svc *SMSCodeService) Send(ctx context.Context,
 	// 区别使用业务
 	biz string,
 	phone string) error {
@@ -47,12 +52,12 @@ func (svc *CodeService) Send(ctx context.Context,
 	return err
 }
 
-func (svc *CodeService) Verify(ctx context.Context, biz string,
+func (svc *SMSCodeService) Verify(ctx context.Context, biz string,
 	phone string, inputCode string) (bool, error) {
 	return svc.repo.Verify(ctx, biz, phone, inputCode)
 }
 
-func (svc *CodeService) generateCode() string {
+func (svc *SMSCodeService) generateCode() string {
 	num := rand.Intn(999999)
 	// 不够 6 位的，加上前导 0
 	return fmt.Sprintf("%6d", num)

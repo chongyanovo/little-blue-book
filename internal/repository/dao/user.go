@@ -14,6 +14,13 @@ var (
 	ErrUserNotFound       = gorm.ErrRecordNotFound
 )
 
+type UserDao interface {
+	FindByEmail(ctx context.Context, email string) (User, error)
+	FindById(ctx context.Context, id int64) (User, error)
+	FindByPhone(ctx context.Context, phone string) (User, error)
+	Insert(ctx context.Context, u User) error
+}
+
 // User 用户数据库对象
 type User struct {
 	Id         int64          `gorm:"primaryKey,autoIncrement"` // 用户ID
@@ -24,29 +31,29 @@ type User struct {
 	UpdateTime int64          // 更新时间 毫秒数
 }
 
-type UserDao struct {
+type GormUserDao struct {
 	db *gorm.DB
 }
 
-func NewUserDao(db *gorm.DB) *UserDao {
-	return &UserDao{
+func NewUserDao(db *gorm.DB) UserDao {
+	return &GormUserDao{
 		db: db,
 	}
 }
 
-func (d *UserDao) FindByEmail(ctx context.Context, email string) (User, error) {
+func (gud *GormUserDao) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
-	err := d.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	err := gud.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
 	return u, err
 }
 
-func (d *UserDao) Insert(ctx context.Context, u User) error {
+func (gud *GormUserDao) Insert(ctx context.Context, u User) error {
 	// 存毫秒数
 	now := time.Now().UnixMilli()
 
 	u.CreateTime = now
 	u.UpdateTime = now
-	err := d.db.WithContext(ctx).Create(&u).Error
+	err := gud.db.WithContext(ctx).Create(&u).Error
 	if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 		const uniqueConflictErrNo uint16 = 1062
 		if mysqlErr.Number == uniqueConflictErrNo {
@@ -57,14 +64,14 @@ func (d *UserDao) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (d *UserDao) FindById(ctx context.Context, id int64) (User, error) {
+func (gud *GormUserDao) FindById(ctx context.Context, id int64) (User, error) {
 	var u User
-	err := d.db.WithContext(ctx).Where("`id` = ?", id).First(&u).Error
+	err := gud.db.WithContext(ctx).Where("`id` = ?", id).First(&u).Error
 	return u, err
 }
 
-func (d UserDao) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (gud GormUserDao) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var u User
-	err := d.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
+	err := gud.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	return u, err
 }
