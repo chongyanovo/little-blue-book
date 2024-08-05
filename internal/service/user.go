@@ -61,3 +61,15 @@ func (svc *UserService) Profile(ctx context.Context, id int64) (domain.User, err
 	}
 	return u, err
 }
+
+func (svc UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+
+	if user, err := svc.repo.FindByPhone(ctx, phone); err == nil {
+		return user, err
+	} else if err := svc.repo.Create(ctx, domain.User{
+		Phone: phone,
+	}); err != nil {
+		return domain.User{}, err
+	}
+	return svc.repo.FindByPhone(ctx, phone)
+}

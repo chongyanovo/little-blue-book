@@ -126,15 +126,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 			ctx.String(http.StatusOK, "系统异常")
 		}
 	} else {
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-			&UserClaims{RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
-			}, UserId: user.Id})
-		jwtString, err := token.SignedString([]byte("secret"))
-		if err != nil {
-			ctx.String(http.StatusOK, "系统异常")
-		}
-		ctx.Header("x-jwt-token", "Bearer "+jwtString)
+		uh.setJWTToken(ctx, user)
 		ctx.String(http.StatusOK, "登录成功")
 	}
 
@@ -180,6 +172,7 @@ func (uh UserHandler) SendLoginSmsCode(ctx *gin.Context) {
 
 }
 
+// LoginSms 登录验证码校验
 func (uh UserHandler) LoginSms(ctx *gin.Context) {
 	const biz = "login"
 	type Request struct {
@@ -196,7 +189,21 @@ func (uh UserHandler) LoginSms(ctx *gin.Context) {
 	} else if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	} else {
+		uh.svc.FindOrCreate(ctx, req.Phone)
 		ctx.String(http.StatusOK, "登录成功")
 	}
 
+}
+
+// setJWTToken 设置 JWT Token
+func (uh UserHandler) setJWTToken(ctx *gin.Context, user domain.User) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		&UserClaims{RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+		}, UserId: user.Id})
+	jwtString, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		ctx.String(http.StatusOK, "系统异常")
+	}
+	ctx.Header("x-jwt-token", "Bearer "+jwtString)
 }

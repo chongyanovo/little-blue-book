@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"github.com/ChongYanOvO/little-blue-book/internal/domain"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/cache"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/dao"
@@ -29,19 +30,11 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 	if err != nil {
 		return domain.User{}, err
 	}
-	return domain.User{
-		Id:       u.Id,
-		Email:    u.Email,
-		Password: u.Password,
-	}, nil
+	return r.Entity2Domain(u), err
 }
 
 func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
-	return r.dao.Insert(ctx, dao.User{
-		Email:    u.Email,
-		Password: u.Password,
-	})
-	// 在这里操作缓存
+	return r.dao.Insert(ctx, r.Domain2Entity(u))
 }
 
 // FindById
@@ -59,15 +52,35 @@ func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 		if err != nil {
 			return domain.User{}, err
 		}
-
-		u = domain.User{
-			Id:       ue.Id,
-			Email:    ue.Email,
-			Password: ue.Password,
-		}
+		u = r.Entity2Domain(ue)
 		_ = r.cache.Set(ctx, u)
 		return u, nil
 	default:
 		return domain.User{}, err
+	}
+}
+
+func (r *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+	u, err := r.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.Entity2Domain(u), err
+}
+
+func (r UserRepository) Entity2Domain(u dao.User) domain.User {
+	return domain.User{
+		Id:       u.Id,
+		Email:    u.Email.String,
+		Password: u.Password,
+		Phone:    u.Phone.String,
+	}
+}
+
+func (r UserRepository) Domain2Entity(u domain.User) dao.User {
+	return dao.User{
+		Email:    sql.NullString{String: u.Email, Valid: u.Email != ""},
+		Password: u.Password,
+		Phone:    sql.NullString{String: u.Phone, Valid: u.Phone != ""},
 	}
 }
