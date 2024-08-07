@@ -56,6 +56,7 @@ func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login/code", uh.LoginSms)
 }
 
+// SignUp 用户注册接口
 func (uh *UserHandler) SignUp(ctx *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email"`
@@ -70,7 +71,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 
 	isEmail, err := uh.emailRegExp.MatchString(req.Email)
 	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
+		ctx.String(http.StatusOK, "系统异常")
 		return
 	}
 	if !isEmail {
@@ -85,7 +86,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 
 	isPassword, err := uh.passwordRegExp.MatchString(req.Password)
 	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
+		ctx.String(http.StatusOK, "系统异常")
 		return
 	}
 
@@ -109,7 +110,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, "hello 注册成功")
+	ctx.String(http.StatusOK, "注册成功")
 }
 
 // Login 用户登录接口
@@ -129,7 +130,6 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 		uh.setJWTToken(ctx, user)
 		ctx.String(http.StatusOK, "登录成功")
 	}
-
 }
 
 func (uh *UserHandler) Edit(ctx *gin.Context) {
