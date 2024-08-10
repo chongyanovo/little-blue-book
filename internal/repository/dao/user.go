@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-sql-driver/mysql"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"time"
 )
@@ -24,23 +25,32 @@ type User struct {
 	UpdateTime int64          // 更新时间 毫秒数
 }
 
-type UserDao struct {
-	db *gorm.DB
+type UserDao interface {
+	FindByEmail(ctx context.Context, email string) (User, error)
+	Insert(ctx context.Context, u User) error
+	FindById(ctx context.Context, id int64) (User, error)
+	FindByPhone(ctx context.Context, phone string) (User, error)
 }
 
-func NewUserDao(db *gorm.DB) *UserDao {
-	return &UserDao{
-		db: db,
+type UserDaoImpl struct {
+	db     *gorm.DB
+	logger *zap.Logger
+}
+
+func NewUserDao(db *gorm.DB, logger *zap.Logger) UserDao {
+	return &UserDaoImpl{
+		db:     db,
+		logger: logger,
 	}
 }
 
-func (d *UserDao) FindByEmail(ctx context.Context, email string) (User, error) {
+func (d *UserDaoImpl) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := d.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
 	return u, err
 }
 
-func (d *UserDao) Insert(ctx context.Context, u User) error {
+func (d *UserDaoImpl) Insert(ctx context.Context, u User) error {
 	// 存毫秒数
 	now := time.Now().UnixMilli()
 
@@ -57,13 +67,13 @@ func (d *UserDao) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (d *UserDao) FindById(ctx context.Context, id int64) (User, error) {
+func (d *UserDaoImpl) FindById(ctx context.Context, id int64) (User, error) {
 	var u User
 	err := d.db.WithContext(ctx).Where("`id` = ?", id).First(&u).Error
 	return u, err
 }
 
-func (d UserDao) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (d UserDaoImpl) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var u User
 	err := d.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	return u, err

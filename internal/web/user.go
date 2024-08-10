@@ -7,6 +7,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -15,7 +16,6 @@ const (
 	emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
 	// 和上面比起来，用 ` 看起来就比较清爽
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
-	userIdKey            = "userId"
 )
 
 type LoginReq struct {
@@ -30,24 +30,25 @@ type UserClaims struct {
 }
 
 type UserHandler struct {
-	svc            *service.UserService
-	codeSvc        *service.CodeService
+	svc            service.UserService
+	codeSvc        service.CodeService
 	emailRegExp    *regexp.Regexp
 	passwordRegExp *regexp.Regexp
+	logger         *zap.Logger
 }
 
-func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, l *zap.Logger) *UserHandler {
 	return &UserHandler{
 		svc:            svc,
 		codeSvc:        codeSvc,
 		emailRegExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordRegExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+		logger:         l,
 	}
 }
 
 func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
-
 	ug.POST("/signup", uh.SignUp)
 	ug.POST("/login", uh.Login)
 	ug.POST("/edit", uh.Edit)

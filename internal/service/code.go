@@ -5,25 +5,36 @@ import (
 	"fmt"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository"
 	"github.com/ChongYanOvO/little-blue-book/internal/service/sms"
+	"go.uber.org/zap"
 	"math/rand"
 )
 
 var codeTpId = "1877556"
 
-type CodeService struct {
-	repo   *repository.CodeRepository
-	smsSvc sms.Service
+type CodeService interface {
+	Send(ctx context.Context,
+		biz string,
+		phone string) error
+	Verify(ctx context.Context, biz string,
+		phone string, inputCode string) (bool, error)
 }
 
-func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
-	return &CodeService{
+type CodeServiceImpl struct {
+	repo   repository.CodeRepository
+	smsSvc sms.SmsService
+	logger *zap.Logger
+}
+
+func NewCodeService(repo repository.CodeRepository, smsSvc sms.SmsService, l *zap.Logger) CodeService {
+	return &CodeServiceImpl{
 		repo:   repo,
 		smsSvc: smsSvc,
+		logger: l,
 	}
 }
 
 // Send 发验证码 我需要什么参数
-func (svc *CodeService) Send(ctx context.Context,
+func (svc *CodeServiceImpl) Send(ctx context.Context,
 	// 区别使用业务
 	biz string,
 	phone string) error {
@@ -47,12 +58,12 @@ func (svc *CodeService) Send(ctx context.Context,
 	return err
 }
 
-func (svc *CodeService) Verify(ctx context.Context, biz string,
+func (svc *CodeServiceImpl) Verify(ctx context.Context, biz string,
 	phone string, inputCode string) (bool, error) {
 	return svc.repo.Verify(ctx, biz, phone, inputCode)
 }
 
-func (svc *CodeService) generateCode() string {
+func (svc *CodeServiceImpl) generateCode() string {
 	num := rand.Intn(999999)
 	// 不够 6 位的，加上前导 0
 	return fmt.Sprintf("%6d", num)

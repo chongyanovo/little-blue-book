@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 var (
@@ -23,17 +24,19 @@ var luaSetCode string
 var luaVerifyCode string
 
 type CodeCache struct {
-	client redis.Cmdable
+	redis  redis.Cmdable
+	logger *zap.Logger
 }
 
-func NewCodeCache(client redis.Cmdable) *CodeCache {
+func NewCodeCache(r redis.Cmdable, l *zap.Logger) *CodeCache {
 	return &CodeCache{
-		client: client,
+		redis:  r,
+		logger: l,
 	}
 }
 
 func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
-	res, err := c.client.Eval(ctx, luaSetCode, []string{c.generateKey(biz, phone)}, code).Int()
+	res, err := c.redis.Eval(ctx, luaSetCode, []string{c.generateKey(biz, phone)}, code).Int()
 	if err != nil {
 		return err
 	}
@@ -50,7 +53,7 @@ func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
 }
 
 func (c *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	res, err := c.client.Eval(ctx, luaVerifyCode, []string{c.generateKey(biz, phone)}, inputCode).Int()
+	res, err := c.redis.Eval(ctx, luaVerifyCode, []string{c.generateKey(biz, phone)}, inputCode).Int()
 	if err != nil {
 		return false, err
 	}
