@@ -38,6 +38,9 @@ type UserDaoImpl struct {
 }
 
 func NewUserDao(db *gorm.DB, logger *zap.Logger) UserDao {
+	if err := db.AutoMigrate(&User{}); err != nil {
+		logger.Error("自动建表失败", zap.Error(err))
+	}
 	return &UserDaoImpl{
 		db:     db,
 		logger: logger,
