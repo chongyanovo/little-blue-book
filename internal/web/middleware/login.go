@@ -40,7 +40,7 @@ func (l *LoginBuilder) Build() gin.HandlerFunc {
 		}
 
 		// 我现在使用 JWT 来校验
-		tokenHeader := ctx.GetHeader("x-jwt-token")
+		tokenHeader := ctx.GetHeader("Authorization")
 		if tokenHeader == "" {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -77,7 +77,7 @@ func (l *LoginBuilder) Build() gin.HandlerFunc {
 				// 记录日志
 				log.Println("jwt 续约失败", err)
 			}
-			ctx.Header("x-jwt-token", tokenStr)
+			ctx.Header("Authorization", tokenStr)
 		}
 		ctx.Set("userClaims", userClaims)
 	}

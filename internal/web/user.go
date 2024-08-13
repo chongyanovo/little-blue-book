@@ -200,11 +200,11 @@ func (uh UserHandler) LoginSms(ctx *gin.Context) {
 func (uh UserHandler) setJWTToken(ctx *gin.Context, user domain.User) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		&UserClaims{RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 10)),
 		}, UserId: user.Id})
 	jwtString, err := token.SignedString([]byte("secret"))
 	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
-	ctx.Header("x-jwt-token", "Bearer "+jwtString)
+	ctx.Header("Authorization", "Bearer "+jwtString)
 }

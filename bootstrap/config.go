@@ -11,6 +11,7 @@ type Config struct {
 	ZapConfig    *ZapConfig    `mapstructure:"zap" json:"zap" yaml:"zap"`
 	MysqlConfig  *MysqlConfig  `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
 	RedisConfig  *RedisConfig  `mapstructure:"redis" json:"redis" yaml:"redis"`
+	TokenConfig  *TokenConfig  `mapstructure:"token" json:"token" yaml:"token"`
 	CacheConfig  *CacheConfig  `mapstructure:"cache" json:"cache" yaml:"cache"`
 	LimitConfig  *LimitConfig  `mapstructure:"limit" json:"limit" yaml:"limit"`
 }
