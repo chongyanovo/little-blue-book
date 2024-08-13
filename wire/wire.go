@@ -37,8 +37,13 @@ var RepositoryProviderSet = wire.NewSet(
 	repository.NewCodeRepository,
 )
 
-var ServiceProviderSet = wire.NewSet(
+var SmsProviderSet = wire.NewSet(
+	//wire.Bind(new(sms.SmsService), new(*sms.MemoryService)),
 	sms.NewMemoryService,
+	//sms.NewLimiterService,
+)
+
+var ServiceProviderSet = wire.NewSet(
 	service.NewUserService,
 	service.NewCodeService,
 )
@@ -53,6 +58,7 @@ func InitServer() (*gin.Engine, error) {
 		CacheProviderSet,
 		DaoProviderSet,
 		RepositoryProviderSet,
+		SmsProviderSet,
 		ServiceProviderSet,
 		WebProviderSet,
 	)

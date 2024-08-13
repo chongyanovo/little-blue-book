@@ -55,6 +55,8 @@ var DaoProviderSet = wire.NewSet(dao.NewUserDao)
 
 var RepositoryProviderSet = wire.NewSet(repository.NewUserRepository, repository.NewCodeRepository)
 
-var ServiceProviderSet = wire.NewSet(sms.NewMemoryService, service.NewUserService, service.NewCodeService)
+var SmsProviderSet = wire.NewSet(sms.NewMemoryService)
+
+var ServiceProviderSet = wire.NewSet(service.NewUserService, service.NewCodeService)
 
 var WebProviderSet = wire.NewSet(web.NewUserHandler)

@@ -12,6 +12,7 @@ type Config struct {
 	MysqlConfig  *MysqlConfig  `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
 	RedisConfig  *RedisConfig  `mapstructure:"redis" json:"redis" yaml:"redis"`
 	CacheConfig  *CacheConfig  `mapstructure:"cache" json:"cache" yaml:"cache"`
+	LimitConfig  *LimitConfig  `mapstructure:"limit" json:"limit" yaml:"limit"`
 }
 
 // NewConfig 读取配置文件

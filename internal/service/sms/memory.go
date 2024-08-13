@@ -17,7 +17,7 @@ func NewMemoryService(l *zap.Logger) SmsService {
 	}
 }
 
-func (MemoryService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
+func (m *MemoryService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
 	fmt.Println("====================")
 	fmt.Println("验证码：", strings.Join(args, ""))
 	fmt.Println("====================")
