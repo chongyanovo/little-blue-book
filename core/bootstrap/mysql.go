@@ -2,8 +2,11 @@ package bootstrap
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	glogger "gorm.io/gorm/logger"
+	"time"
 )
 
 // MysqlConfig mysql配置
@@ -17,7 +20,7 @@ type MysqlConfig struct {
 }
 
 // NewMysql 创建Mysql数据库连接
-func NewMysql(c *Config) *gorm.DB {
+func NewMysql(c *Config, l *zap.Logger) *gorm.DB {
 	m := c.MysqlConfig
 	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?%v",
 		m.Username,
@@ -29,9 +32,22 @@ func NewMysql(c *Config) *gorm.DB {
 	db, err := gorm.Open(
 		mysql.New(mysql.Config{
 			DSN: dsn,
-		}), &gorm.Config{})
+		}), &gorm.Config{
+			Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
+				SlowThreshold:             time.Millisecond * 100,
+				Colorful:                  true,
+				IgnoreRecordNotFoundError: true,
+				LogLevel:                  glogger.Info,
+			}),
+		})
 	if err != nil {
 		panic(fmt.Sprintf("Mysql创建失败: %v", err))
 	}
 	return db
+}
+
+type gormLoggerFunc func(msg string, args ...zap.Field)
+
+func (g gormLoggerFunc) Printf(msg string, args ...any) {
+	g(msg, zap.Field{Key: "args", Interface: args})
 }

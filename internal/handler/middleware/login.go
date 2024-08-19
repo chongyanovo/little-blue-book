@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"encoding/gob"
-	"github.com/ChongYanOvO/little-blue-book/internal/web"
+	"github.com/ChongYanOvO/little-blue-book/internal/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"log"
@@ -52,7 +52,7 @@ func (l *LoginBuilder) Build() gin.HandlerFunc {
 			return
 		}
 		tokenStr := segs[1]
-		userClaims := &web.UserClaims{}
+		userClaims := &handler.UserClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, userClaims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("secret"), nil
 		})

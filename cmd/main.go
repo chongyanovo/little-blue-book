@@ -1,21 +1,18 @@
 package main
 
-import (
-	"fmt"
-	"github.com/ChongYanOvO/little-blue-book/wire"
-)
+import "fmt"
 
 func main() {
-	server, err := wire.InitServer()
-	if err != nil {
-		panic(err)
-	}
-	config, err := wire.InitConfig()
+	app, err := InitApp()
 	if err != nil {
 		panic(err)
 	}
 
-	server.Run(
+	config, err := InitConfig()
+	if err != nil {
+		panic(err)
+	}
+	app.Server.Run(
 		fmt.Sprintf("%s:%d",
 			config.ServerConfig.Host,
 			config.ServerConfig.Port),

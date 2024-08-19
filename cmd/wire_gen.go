@@ -4,29 +4,30 @@
 //go:build !wireinject
 // +build !wireinject
 
-package wire
+package main
 
 import (
-	"github.com/ChongYanOvO/little-blue-book/bootstrap"
+	"github.com/ChongYanOvO/little-blue-book/core"
+	"github.com/ChongYanOvO/little-blue-book/core/bootstrap"
+	"github.com/ChongYanOvO/little-blue-book/internal/handler"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/cache"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/dao"
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	"github.com/ChongYanOvO/little-blue-book/internal/service/sms"
-	"github.com/ChongYanOvO/little-blue-book/internal/web"
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func InitServer() (*gin.Engine, error) {
+func InitApp() (core.Application, error) {
 	viper := bootstrap.NewViper()
 	config := bootstrap.NewConfig(viper)
-	db := bootstrap.NewMysql(config)
 	logger := bootstrap.NewZap(config)
-	userDao := dao.NewUserDao(db, logger)
+	db := bootstrap.NewMysql(config, logger)
 	cmdable := bootstrap.NewRedis(config)
+	v := bootstrap.NewMiddleware(logger)
+	userDao := dao.NewUserDao(db, logger)
 	userCache := cache.NewRedisUserCache(cmdable, logger)
 	userRepository := repository.NewUserRepository(userDao, userCache, logger)
 	userService := service.NewUserService(userRepository, logger)
@@ -34,9 +35,10 @@ func InitServer() (*gin.Engine, error) {
 	codeRepository := repository.NewCodeRepository(codeCache, logger)
 	smsService := sms.NewMemoryService(logger)
 	codeService := service.NewCodeService(codeRepository, smsService, logger)
-	userHandler := web.NewUserHandler(userService, codeService, logger)
-	engine := bootstrap.NewWeb(userHandler)
-	return engine, nil
+	userHandler := handler.NewUserHandler(userService, codeService, logger)
+	engine := bootstrap.NewServer(v, userHandler)
+	application := core.NewApplication(config, db, cmdable, logger, engine)
+	return application, nil
 }
 
 func InitConfig() (*bootstrap.Config, error) {
@@ -47,16 +49,6 @@ func InitConfig() (*bootstrap.Config, error) {
 
 // wire.go:
 
-var BootstrapProviderSet = wire.NewSet(bootstrap.NewViper, bootstrap.NewConfig, bootstrap.NewMysql, bootstrap.NewZap, bootstrap.NewRedis, bootstrap.NewWeb)
+var BaseProvider = wire.NewSet(bootstrap.NewViper, bootstrap.NewConfig, bootstrap.NewMysql, bootstrap.NewRedis, bootstrap.NewZap, bootstrap.NewMiddleware, bootstrap.NewServer, core.NewApplication)
 
-var CacheProviderSet = wire.NewSet(cache.NewRedisUserCache, cache.NewCodeCache)
-
-var DaoProviderSet = wire.NewSet(dao.NewUserDao)
-
-var RepositoryProviderSet = wire.NewSet(repository.NewUserRepository, repository.NewCodeRepository)
-
-var SmsProviderSet = wire.NewSet(sms.NewMemoryService)
-
-var ServiceProviderSet = wire.NewSet(service.NewUserService, service.NewCodeService)
-
-var WebProviderSet = wire.NewSet(web.NewUserHandler)
+var UserProvider = wire.NewSet(cache.NewCodeCache, cache.NewRedisUserCache, dao.NewUserDao, repository.NewCodeRepository, repository.NewUserRepository, sms.NewMemoryService, service.NewCodeService, service.NewUserService, handler.NewUserHandler)

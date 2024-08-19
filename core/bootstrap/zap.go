@@ -24,6 +24,17 @@ type ZapConfig struct {
 	LogInConsole  bool   `mapstructure:"log-in-console" json:"log-in-console" yaml:"log-in-console"` // 输出控制台
 }
 
+// NewZap NewZap
+func NewZap(c *Config) *zap.Logger {
+	z := c.ZapConfig
+	cores := z.getZapCores()                    // 获取 zap 核心切片
+	logger := zap.New(zapcore.NewTee(cores...)) // 初始化 zap.Logger
+	if z.ShowLine {                             // 判断是否显示行
+		logger = logger.WithOptions(zap.AddCaller())
+	}
+	return logger
+}
+
 // zapEncodeLevel 根据配置文件中的encode-level解析出对应的LevelEncoder
 func (z *ZapConfig) zapEncodeLevel() zapcore.LevelEncoder {
 	switch {
@@ -145,17 +156,6 @@ func (z *ZapConfig) getZapCores() []zapcore.Core {
 		cores = append(cores, z.getEncoderCore(level, z.getLevelPriority(level)))
 	}
 	return cores
-}
-
-// NewZap NewZap
-func NewZap(c *Config) *zap.Logger {
-	z := c.ZapConfig
-	cores := z.getZapCores()                    // 获取 zap 核心切片
-	logger := zap.New(zapcore.NewTee(cores...)) // 初始化 zap.Logger
-	if z.ShowLine {                             // 判断是否显示行
-		logger = logger.WithOptions(zap.AddCaller())
-	}
-	return logger
 }
 
 var FileRotateLogs = new(fileRotateLogs)

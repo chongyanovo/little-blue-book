@@ -18,15 +18,9 @@ type Config struct {
 
 // NewConfig 读取配置文件
 func NewConfig(v *viper.Viper) *Config {
-	config := Config{}
-	if err := v.Unmarshal(&config); err != nil {
+	c := Config{}
+	if err := v.Unmarshal(&c); err != nil {
 		panic(fmt.Sprintf("读取配置文件失败: %v", err))
 	}
-	return &config
-}
-
-// ServerConfig server配置
-type ServerConfig struct {
-	Host string `mapstructure:"host" json:"host" yaml:"host"`
-	Port int    `mapstructure:"port" json:"port" yaml:"port"`
+	return &c
 }

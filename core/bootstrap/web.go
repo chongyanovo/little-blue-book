@@ -1,12 +1,12 @@
 package bootstrap
 
 import (
-	"github.com/ChongYanOvO/little-blue-book/internal/web"
+	"github.com/ChongYanOvO/little-blue-book/internal/handler"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func NewWeb(uh *web.UserHandler) *gin.Engine {
+func NewWeb(uh *handler.UserHandler) *gin.Engine {
 	engine := gin.Default()
 	engine.Use(CorsMiddleware())
 	uh.RegisterRoutes(engine)

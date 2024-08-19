@@ -1,0 +1,1 @@
+[little-blue-book]2024/08/19 - 21:37:38.572	[34minfo[0m	/Users/chongyan/workspace/go/little-blue-book/core/bootstrap/middleware.go:19	Http请求	{"日志": {"Duration":"6.86156625s","Method":"GET","Url":"/users/profile","Status":200,"RequestBody":"","ResponseBody":"系统异常"}}
