@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"context"
-	"github.com/ChongYanOvO/little-blue-book/pkg/ginx/middleware/logger"
+	"github.com/ChongYanOvO/little-blue-book/pkg/ginx/middleware/accesslog"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -14,8 +14,8 @@ func NewMiddleware(l *zap.Logger) []gin.HandlerFunc {
 }
 
 func NewLoggerMiddleware(l *zap.Logger) gin.HandlerFunc {
-	return logger.
-		NewBuilder(func(ctx context.Context, log *logger.AccessLog) {
+	return accesslog.
+		NewBuilder(func(ctx context.Context, log *accesslog.AccessLog) {
 			l.Info("Http请求", zap.Any("日志", log))
 		}).
 		AllowRequestBody(true).

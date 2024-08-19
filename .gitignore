@@ -2,3 +2,4 @@
 frontend
 docker/mysql
 docker/redis
+logs
