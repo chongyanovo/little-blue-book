@@ -7,6 +7,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -15,7 +16,6 @@ const (
 	emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
 	// 和上面比起来，用 ` 看起来就比较清爽
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
-	userIdKey            = "userId"
 )
 
 type LoginReq struct {
@@ -34,20 +34,21 @@ type UserHandler struct {
 	codeSvc        service.CodeService
 	emailRegExp    *regexp.Regexp
 	passwordRegExp *regexp.Regexp
+	logger         *zap.Logger
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, l *zap.Logger) *UserHandler {
 	return &UserHandler{
 		svc:            svc,
 		codeSvc:        codeSvc,
 		emailRegExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordRegExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+		logger:         l,
 	}
 }
 
 func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
-
 	ug.POST("/signup", uh.SignUp)
 	ug.POST("/login", uh.Login)
 	ug.POST("/edit", uh.Edit)
@@ -56,7 +57,6 @@ func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login/code", uh.LoginSms)
 }
 
-// SignUp 用户注册接口
 func (uh *UserHandler) SignUp(ctx *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email"`
@@ -71,7 +71,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 
 	isEmail, err := uh.emailRegExp.MatchString(req.Email)
 	if err != nil {
-		ctx.String(http.StatusOK, "系统异常")
+		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 	if !isEmail {
@@ -86,7 +86,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 
 	isPassword, err := uh.passwordRegExp.MatchString(req.Password)
 	if err != nil {
-		ctx.String(http.StatusOK, "系统异常")
+		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
@@ -110,7 +110,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, "注册成功")
+	ctx.String(http.StatusOK, "hello 注册成功")
 }
 
 // Login 用户登录接口
@@ -130,6 +130,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 		uh.setJWTToken(ctx, user)
 		ctx.String(http.StatusOK, "登录成功")
 	}
+
 }
 
 func (uh *UserHandler) Edit(ctx *gin.Context) {
@@ -199,11 +200,11 @@ func (uh UserHandler) LoginSms(ctx *gin.Context) {
 func (uh UserHandler) setJWTToken(ctx *gin.Context, user domain.User) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		&UserClaims{RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 10)),
 		}, UserId: user.Id})
 	jwtString, err := token.SignedString([]byte("secret"))
 	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
-	ctx.Header("x-jwt-token", "Bearer "+jwtString)
+	ctx.Header("Authorization", "Bearer "+jwtString)
 }

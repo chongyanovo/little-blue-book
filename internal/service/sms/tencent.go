@@ -1,4 +1,4 @@
-package tencent
+package sms
 
 import (
 	"context"
@@ -8,21 +8,21 @@ import (
 	"math/rand"
 )
 
-type Service struct {
+type TencentSmsService struct {
 	appId     string
 	signature string
 	client    *sms.Client
 }
 
-func NewService(client *sms.Client, appId string, signature string) *Service {
-	return &Service{
+func NewTencentSmsService(client *sms.Client, appId string, signature string) SmsService {
+	return &TencentSmsService{
 		appId:     appId,
 		signature: signature,
 		client:    client,
 	}
 }
 
-func (s Service) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
+func (s TencentSmsService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
 	req := sms.NewSendSmsRequest()
 	req.SmsSdkAppId = &s.appId
 	req.SignName = &s.signature
@@ -43,7 +43,7 @@ func (s Service) Send(ctx context.Context, tplId string, args []string, numbers 
 	return nil
 }
 
-func (s Service) toStringPtrSlice(slice []string) []*string {
+func (s TencentSmsService) toStringPtrSlice(slice []string) []*string {
 	res := make([]*string, len(slice))
 	for i, s := range slice {
 		res[i] = &s
@@ -51,7 +51,7 @@ func (s Service) toStringPtrSlice(slice []string) []*string {
 	return res
 }
 
-func (s Service) generateCode() string {
+func (s TencentSmsService) generateCode() string {
 	num := rand.Intn(999999)
 	return fmt.Sprintf("%6d", num)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ChongYanOvO/little-blue-book/internal/domain"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -17,14 +18,17 @@ type UserCache interface {
 }
 
 type RedisUserCache struct {
-	client     redis.Cmdable
+	redis      redis.Cmdable
 	expiration time.Duration
+	logger     *zap.Logger
 }
 
-func NewUserCache(client redis.Cmdable) UserCache {
+func NewRedisUserCache(r redis.Cmdable, l *zap.Logger) UserCache {
 	return &RedisUserCache{
-		client:     client,
-		expiration: time.Minute * 5,
+		redis: r,
+		//expiration: time.Duration(config.CacheConfig.UserExpiration) * time.Minute,
+		expiration: 10 * time.Minute,
+		logger:     l,
 	}
 }
 
@@ -32,7 +36,7 @@ func NewUserCache(client redis.Cmdable) UserCache {
 // 如果没有数据，返回一个特定的 error
 func (cache *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, error) {
 	key := cache.generateKey(id)
-	val, err := cache.client.Get(ctx, key).Bytes()
+	val, err := cache.redis.Get(ctx, key).Bytes()
 	if err != nil {
 		return domain.User{}, ErrKeyNotExist
 	}
@@ -44,10 +48,11 @@ func (cache *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, er
 func (cache *RedisUserCache) Set(ctx context.Context, u domain.User) error {
 	val, err := json.Marshal(u)
 	if err != nil {
+		cache.logger.Error("failed to marshal user", zap.Error(err))
 		return err
 	}
 	key := cache.generateKey(u.Id)
-	return cache.client.Set(ctx, key, val, cache.expiration).Err()
+	return cache.redis.Set(ctx, key, val, cache.expiration).Err()
 }
 
 func (cache *RedisUserCache) generateKey(id int64) string {

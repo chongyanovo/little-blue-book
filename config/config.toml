@@ -1,0 +1,32 @@
+[server]
+host = "127.0.0.1"
+port = 8088
+[zap]
+level = "info"
+prefix = "[little-blue-book]"
+format = "console"
+director = "logs"
+encode-level = "LowercaseColorLevelEncoder"
+stacktrace-key = "stacktrace"
+show-line = true
+log-in-console = true
+[mysql]
+hostname = "127.0.0.1"
+config = "charset=utf8mb4&parseTime=True&loc=Local"
+port = 13306
+username = "root"
+password = "123456"
+database = "little-blue-book"
+[redis]
+host = "127.0.0.1"
+port = 6379
+username = ""
+password = ""
+[token]
+expiration = 10
+[cache]
+user-expiration = 10
+[limit]
+[limit.sms]
+interval = 1000000000
+rate = 10

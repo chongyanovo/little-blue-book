@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ChongYanOvO/little-blue-book/internal/domain"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,17 +21,19 @@ type UserService interface {
 	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
 }
 
-type userService struct {
-	repo repository.UserRepository
+type UserServiceImpl struct {
+	repo   repository.UserRepository
+	logger *zap.Logger
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
-	return &userService{
-		repo: repo,
+func NewUserService(repo repository.UserRepository, l *zap.Logger) UserService {
+	return &UserServiceImpl{
+		repo:   repo,
+		logger: l,
 	}
 }
 
-func (svc *userService) Login(ctx context.Context, email, password string) (domain.User, error) {
+func (svc *UserServiceImpl) Login(ctx context.Context, email, password string) (domain.User, error) {
 	// 先找用户
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if errors.Is(err, repository.ErrUserNotFound) {
@@ -49,7 +52,7 @@ func (svc *userService) Login(ctx context.Context, email, password string) (doma
 	return u, nil
 }
 
-func (svc *userService) SignUp(ctx context.Context, u domain.User) error {
+func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain.User) error {
 	// 你要考虑加密放在哪里
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -61,7 +64,7 @@ func (svc *userService) SignUp(ctx context.Context, u domain.User) error {
 	return svc.repo.Create(ctx, u)
 }
 
-func (svc *userService) Profile(ctx context.Context, id int64) (domain.User, error) {
+func (svc *UserServiceImpl) Profile(ctx context.Context, id int64) (domain.User, error) {
 	u, err := svc.repo.FindById(ctx, id)
 	if err != nil {
 		return domain.User{}, err
@@ -69,7 +72,7 @@ func (svc *userService) Profile(ctx context.Context, id int64) (domain.User, err
 	return u, err
 }
 
-func (svc userService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+func (svc UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
 
 	if user, err := svc.repo.FindByPhone(ctx, phone); err == nil {
 		return user, err

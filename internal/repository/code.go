@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/cache"
+	"go.uber.org/zap"
 )
 
 var (
@@ -15,20 +16,22 @@ type CodeRepository interface {
 	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
 }
 
-type CacheCodeRepository struct {
-	cache cache.CodeCache
+type CodeRepositoryImpl struct {
+	cache  *cache.CodeCache
+	logger *zap.Logger
 }
 
-func NewCodeRepository(c cache.CodeCache) CodeRepository {
-	return &CacheCodeRepository{
-		cache: c,
+func NewCodeRepository(c *cache.CodeCache, l *zap.Logger) CodeRepository {
+	return &CodeRepositoryImpl{
+		cache:  c,
+		logger: l,
 	}
 }
 
-func (repo *CacheCodeRepository) Store(ctx context.Context, biz, phone, code string) error {
+func (repo *CodeRepositoryImpl) Store(ctx context.Context, biz, phone, code string) error {
 	return repo.cache.Set(ctx, biz, phone, code)
 }
 
-func (repo *CacheCodeRepository) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+func (repo *CodeRepositoryImpl) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
 	return repo.cache.Verify(ctx, biz, phone, inputCode)
 }

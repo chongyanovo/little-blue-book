@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 var (
@@ -22,23 +23,20 @@ var luaSetCode string
 //go:embed lua/verify_code.lua
 var luaVerifyCode string
 
-type CodeCache interface {
-	Set(ctx context.Context, biz, phone, code string) error
-	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
+type CodeCache struct {
+	redis  redis.Cmdable
+	logger *zap.Logger
 }
 
-type RedisCodeCache struct {
-	client redis.Cmdable
-}
-
-func NewCodeCache(client redis.Cmdable) CodeCache {
-	return &RedisCodeCache{
-		client: client,
+func NewCodeCache(r redis.Cmdable, l *zap.Logger) *CodeCache {
+	return &CodeCache{
+		redis:  r,
+		logger: l,
 	}
 }
 
-func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error {
-	res, err := c.client.Eval(ctx, luaSetCode, []string{c.generateKey(biz, phone)}, code).Int()
+func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
+	res, err := c.redis.Eval(ctx, luaSetCode, []string{c.generateKey(biz, phone)}, code).Int()
 	if err != nil {
 		return err
 	}
@@ -54,8 +52,8 @@ func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error
 	return err
 }
 
-func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	res, err := c.client.Eval(ctx, luaVerifyCode, []string{c.generateKey(biz, phone)}, inputCode).Int()
+func (c *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+	res, err := c.redis.Eval(ctx, luaVerifyCode, []string{c.generateKey(biz, phone)}, inputCode).Int()
 	if err != nil {
 		return false, err
 	}
@@ -72,6 +70,6 @@ func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode strin
 	}
 }
 
-func (c *RedisCodeCache) generateKey(biz, phone string) string {
+func (c *CodeCache) generateKey(biz, phone string) string {
 	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }
