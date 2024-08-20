@@ -5,8 +5,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	glogger "gorm.io/gorm/logger"
-	"time"
 )
 
 // MysqlConfig mysql配置
@@ -32,18 +30,21 @@ func NewMysql(c *Config, l *zap.Logger) *gorm.DB {
 	db, err := gorm.Open(
 		mysql.New(mysql.Config{
 			DSN: dsn,
-		}), &gorm.Config{
-			Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
-				SlowThreshold:             time.Millisecond * 100,
-				Colorful:                  true,
-				IgnoreRecordNotFoundError: true,
-				LogLevel:                  glogger.Info,
-			}),
-		})
+		}),
+		//&gorm.Config{
+		//	Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
+		//		SlowThreshold:             time.Millisecond * 100,
+		//		Colorful:                  true,
+		//		IgnoreRecordNotFoundError: true,
+		//		ParameterizedQueries:      true,
+		//		LogLevel:                  glogger.Info,
+		//	}),
+		//},
+	)
 	if err != nil {
 		panic(fmt.Sprintf("Mysql创建失败: %v", err))
 	}
-	return db
+	return db.Debug()
 }
 
 type gormLoggerFunc func(msg string, args ...zap.Field)

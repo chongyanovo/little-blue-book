@@ -16,6 +16,7 @@ type Server gin.Engine
 // NewServer 创建server
 func NewServer(middlewares []gin.HandlerFunc, uh *handler.UserHandler) *gin.Engine {
 	server := gin.Default()
+
 	server.Use(middlewares...)
 	uh.RegisterRoutes(server)
 	return server
