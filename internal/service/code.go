@@ -43,7 +43,6 @@ func (svc *CodeServiceImpl) Send(ctx context.Context,
 	// 塞进去 Redis
 	err := svc.repo.Store(ctx, biz, phone, code)
 	if err != nil {
-		// 有问题
 		return err
 	}
 	// 发送出去

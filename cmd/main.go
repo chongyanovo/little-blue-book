@@ -1,14 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/ChongYanOvO/little-blue-book/wire"
+)
 
 func main() {
-	app, err := InitApp()
+	app, err := wire.InitApp()
 	if err != nil {
 		panic(err)
 	}
 
-	config, err := InitConfig()
+	config, err := wire.InitConfig()
 	if err != nil {
 		panic(err)
 	}

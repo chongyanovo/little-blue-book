@@ -1,7 +1,7 @@
 //go:build wireinject
 // +build wireinject
 
-package main
+package wire
 
 import (
 	"github.com/ChongYanOvO/little-blue-book/core"
@@ -13,6 +13,7 @@ import (
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	"github.com/ChongYanOvO/little-blue-book/internal/service/sms"
 	"github.com/google/wire"
+	"gorm.io/gorm"
 )
 
 var BaseProvider = wire.NewSet(
@@ -38,6 +39,13 @@ var UserProvider = wire.NewSet(
 	handler.NewUserHandler,
 )
 
+var ArticleProvider = wire.NewSet(
+	dao.NewArticleDao,
+	repository.NewArticleRepository,
+	service.NewArticleService,
+	handler.NewArticleHandler,
+)
+
 func InitApp() (core.Application, error) {
 	wire.Build(
 		BaseProvider,
@@ -52,4 +60,22 @@ func InitConfig() (*bootstrap.Config, error) {
 		bootstrap.NewConfig,
 	)
 	return &bootstrap.Config{}, nil
+}
+
+func InitArticleHandler() (*handler.ArticleHandler, error) {
+	wire.Build(
+		BaseProvider,
+		ArticleProvider,
+	)
+	return &handler.ArticleHandler{}, nil
+}
+
+func InitMysql() (*gorm.DB, error) {
+	wire.Build(
+		bootstrap.NewViper,
+		bootstrap.NewConfig,
+		bootstrap.NewMysql,
+		bootstrap.NewZap,
+	)
+	return &gorm.DB{}, nil
 }

@@ -78,7 +78,7 @@ func (r *UserRepositoryImpl) FindByPhone(ctx context.Context, phone string) (dom
 	return r.Entity2Domain(u), err
 }
 
-func (r UserRepositoryImpl) Entity2Domain(u dao.User) domain.User {
+func (r *UserRepositoryImpl) Entity2Domain(u dao.User) domain.User {
 	return domain.User{
 		Id:       u.Id,
 		Email:    u.Email.String,
@@ -87,7 +87,7 @@ func (r UserRepositoryImpl) Entity2Domain(u dao.User) domain.User {
 	}
 }
 
-func (r UserRepositoryImpl) Domain2Entity(u domain.User) dao.User {
+func (r *UserRepositoryImpl) Domain2Entity(u domain.User) dao.User {
 	return dao.User{
 		Email:    sql.NullString{String: u.Email, Valid: u.Email != ""},
 		Password: u.Password,

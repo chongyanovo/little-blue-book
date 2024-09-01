@@ -6,16 +6,24 @@ import (
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
-	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"time"
 )
 
 const (
-	emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
-	// 和上面比起来，用 ` 看起来就比较清爽
+	emailRegexPattern    = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
+)
+
+var (
+	ErrTokenNotExist = errors.New("token不存在")
+	ErrTokenExpired  = errors.New("token过期")
+	ErrTokenInvalid  = errors.New("token无效")
+	AccessKey        = []byte("oIft1b5qZjyLcc0zZo2UrUx5rk3KE0LvZKv73fw502oXd6vfYu1OAQvbSel8whvn")
+	AccessHeader     = "Authorization"
 )
 
 type LoginReq struct {
@@ -23,11 +31,7 @@ type LoginReq struct {
 	Password string `json:"password"`
 }
 
-type UserClaims struct {
-	jwt.RegisteredClaims
-	// 声明你自己的要放进去 token 里面的数据。
-	UserId int64
-}
+var _ Handler = (*UserHandler)(nil)
 
 type UserHandler struct {
 	svc            service.UserService
@@ -66,6 +70,7 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 	var req SignUpReq
 
 	if err := ctx.Bind(&req); err != nil {
+		ctx.String(http.StatusOK, "参数绑定失败")
 		return
 	}
 
@@ -110,13 +115,14 @@ func (uh *UserHandler) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, "hello 注册成功")
+	ctx.String(http.StatusOK, "注册成功")
 }
 
 // Login 用户登录接口
 func (uh *UserHandler) Login(ctx *gin.Context) {
 	var req LoginReq
-	if err := ctx.Bind(&req); err != nil {
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.String(http.StatusOK, "参数解析错误")
 		return
 	}
 	user, err := uh.svc.Login(ctx, req.Email, req.Password)
@@ -127,7 +133,10 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 			ctx.String(http.StatusOK, "系统异常")
 		}
 	} else {
-		uh.setJWTToken(ctx, user)
+		if err := SetJwtToken(ctx, user.Id); err != nil {
+			uh.logger.Error("jwt设置错误")
+			return
+		}
 		ctx.String(http.StatusOK, "登录成功")
 	}
 
@@ -139,15 +148,11 @@ func (uh *UserHandler) Edit(ctx *gin.Context) {
 
 // Profile 用户详情
 func (uh *UserHandler) Profile(ctx *gin.Context) {
-	userClaims, ok := ctx.Get("userClaims")
-	if !ok {
+	uc, err := ExtractJwtClaims(ctx)
+	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
-	claims, ok := userClaims.(*UserClaims)
-	if !ok {
-		ctx.String(http.StatusOK, "系统异常")
-	}
-	user, err := uh.svc.Profile(ctx, claims.UserId)
+	user, err := uh.svc.Profile(ctx, uc.Uid)
 	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
@@ -155,7 +160,7 @@ func (uh *UserHandler) Profile(ctx *gin.Context) {
 }
 
 // SendLoginSmsCode 登录验证码发送
-func (uh UserHandler) SendLoginSmsCode(ctx *gin.Context) {
+func (uh *UserHandler) SendLoginSmsCode(ctx *gin.Context) {
 	const biz = "login"
 	type Request struct {
 		Phone string `json:"phone"`
@@ -174,7 +179,7 @@ func (uh UserHandler) SendLoginSmsCode(ctx *gin.Context) {
 }
 
 // LoginSms 登录验证码校验
-func (uh UserHandler) LoginSms(ctx *gin.Context) {
+func (uh *UserHandler) LoginSms(ctx *gin.Context) {
 	const biz = "login"
 	type Request struct {
 		Phone string `json:"phone"`
@@ -190,21 +195,66 @@ func (uh UserHandler) LoginSms(ctx *gin.Context) {
 	} else if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	} else {
-		uh.svc.FindOrCreate(ctx, req.Phone)
+		u, err := uh.svc.FindOrCreate(ctx, req.Phone)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统异常")
+			return
+		}
+		if err := SetJwtToken(ctx, u.Id); err != nil {
+			uh.logger.Error("jwt设置错误")
+		}
 		ctx.String(http.StatusOK, "登录成功")
 	}
 
 }
 
-// setJWTToken 设置 JWT Token
-func (uh UserHandler) setJWTToken(ctx *gin.Context, user domain.User) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		&UserClaims{RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 10)),
-		}, UserId: user.Id})
-	jwtString, err := token.SignedString([]byte("secret"))
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid  int64
+	Name string
+}
+
+// SetJwtToken 设置Token
+func SetJwtToken(ctx *gin.Context, id int64) error {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512,
+		&UserClaims{
+			Uid: id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
+			},
+		})
+	tokenStr, err := token.SignedString(AccessKey)
 	if err != nil {
-		ctx.String(http.StatusOK, "系统异常")
+		return err
 	}
-	ctx.Header("Authorization", "Bearer "+jwtString)
+	ctx.Header(AccessHeader, "Bearer "+tokenStr)
+	return nil
+}
+
+// ExtractJwtClaims 从前端请求中，提取tokenClaims
+func ExtractJwtClaims(ctx *gin.Context) (*UserClaims, error) {
+	tokenStr, err := ExtractToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	uc := &UserClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, uc, func(token *jwt.Token) (any, error) {
+		return AccessKey, nil
+	})
+	if err != nil || token == nil || !token.Valid || uc.Uid == 0 {
+		return nil, err
+	}
+	return uc, nil
+}
+
+// ExtractToken 从前端请求中，提取tokenStr
+func ExtractToken(ctx *gin.Context) (string, error) {
+	tokenStr := ctx.Request.Header.Get(AccessHeader)
+	if tokenStr == "" {
+		return "", ErrTokenNotExist
+	}
+	if len(strings.Split(tokenStr, " ")) != 2 {
+		return "", ErrTokenInvalid
+	}
+	return strings.Split(tokenStr, " ")[1], nil
 }

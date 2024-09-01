@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrUserDuplicateEmail = repository.ErrUserDuplicateEmail
+	ErrUserNotFound       = repository.ErrUserNotFound
 	ErrInvalidUserOrEmail = errors.New("邮箱或密码不对")
 )
 
@@ -36,7 +37,7 @@ func NewUserService(repo repository.UserRepository, l *zap.Logger) UserService {
 func (svc *UserServiceImpl) Login(ctx context.Context, email, password string) (domain.User, error) {
 	// 先找用户
 	u, err := svc.repo.FindByEmail(ctx, email)
-	if errors.Is(err, repository.ErrUserNotFound) {
+	if errors.Is(err, ErrUserNotFound) {
 		return domain.User{}, err
 	}
 

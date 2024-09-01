@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package main
+package wire
 
 import (
 	"github.com/ChongYanOvO/little-blue-book/core"
@@ -16,6 +16,7 @@ import (
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	"github.com/ChongYanOvO/little-blue-book/internal/service/sms"
 	"github.com/google/wire"
+	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
@@ -47,8 +48,30 @@ func InitConfig() (*bootstrap.Config, error) {
 	return config, nil
 }
 
+func InitArticleHandler() (*handler.ArticleHandler, error) {
+	viper := bootstrap.NewViper()
+	config := bootstrap.NewConfig(viper)
+	logger := bootstrap.NewZap(config)
+	db := bootstrap.NewMysql(config, logger)
+	articleDao := dao.NewArticleDao(db, logger)
+	articleRepository := repository.NewArticleRepository(articleDao, logger)
+	articleService := service.NewArticleService(articleRepository, logger)
+	articleHandler := handler.NewArticleHandler(articleService, logger)
+	return articleHandler, nil
+}
+
+func InitMysql() (*gorm.DB, error) {
+	viper := bootstrap.NewViper()
+	config := bootstrap.NewConfig(viper)
+	logger := bootstrap.NewZap(config)
+	db := bootstrap.NewMysql(config, logger)
+	return db, nil
+}
+
 // wire.go:
 
 var BaseProvider = wire.NewSet(bootstrap.NewViper, bootstrap.NewConfig, bootstrap.NewMysql, bootstrap.NewRedis, bootstrap.NewZap, bootstrap.NewMiddleware, bootstrap.NewServer, core.NewApplication)
 
 var UserProvider = wire.NewSet(cache.NewCodeCache, cache.NewRedisUserCache, dao.NewUserDao, repository.NewCodeRepository, repository.NewUserRepository, sms.NewMemoryService, service.NewCodeService, service.NewUserService, handler.NewUserHandler)
+
+var ArticleProvider = wire.NewSet(dao.NewArticleDao, repository.NewArticleRepository, service.NewArticleService, handler.NewArticleHandler)

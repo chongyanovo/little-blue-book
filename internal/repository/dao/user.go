@@ -27,6 +27,7 @@ type User struct {
 
 type UserDao interface {
 	FindByEmail(ctx context.Context, email string) (User, error)
+	// Insert 插入用户
 	Insert(ctx context.Context, u User) error
 	FindById(ctx context.Context, id int64) (User, error)
 	FindByPhone(ctx context.Context, phone string) (User, error)
@@ -37,13 +38,13 @@ type UserDaoImpl struct {
 	logger *zap.Logger
 }
 
-func NewUserDao(db *gorm.DB, logger *zap.Logger) UserDao {
+func NewUserDao(db *gorm.DB, l *zap.Logger) UserDao {
 	if err := db.AutoMigrate(&User{}); err != nil {
-		logger.Error("自动建表失败", zap.Error(err))
+		l.Error("自动建表失败", zap.Error(err))
 	}
 	return &UserDaoImpl{
 		db:     db,
-		logger: logger,
+		logger: l,
 	}
 }
 
@@ -53,6 +54,7 @@ func (d *UserDaoImpl) FindByEmail(ctx context.Context, email string) (User, erro
 	return u, err
 }
 
+// Insert 插入用户
 func (d *UserDaoImpl) Insert(ctx context.Context, u User) error {
 	// 存毫秒数
 	now := time.Now().UnixMilli()
@@ -60,7 +62,8 @@ func (d *UserDaoImpl) Insert(ctx context.Context, u User) error {
 	u.CreateTime = now
 	u.UpdateTime = now
 	err := d.db.WithContext(ctx).Create(&u).Error
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
 		const uniqueConflictErrNo uint16 = 1062
 		if mysqlErr.Number == uniqueConflictErrNo {
 			// 邮箱冲突
@@ -76,7 +79,7 @@ func (d *UserDaoImpl) FindById(ctx context.Context, id int64) (User, error) {
 	return u, err
 }
 
-func (d UserDaoImpl) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (d *UserDaoImpl) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var u User
 	err := d.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	return u, err
