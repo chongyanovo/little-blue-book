@@ -44,7 +44,7 @@ func (ah *ArticleHandler) Create(ctx *gin.Context) {
 		ah.logger.Error("获取UserClaims错误", zap.Error(err))
 		return
 	}
-	a, err := ah.svc.Save(ctx, domain.Article{
+	a, err := ah.svc.Save(ctx, &domain.Article{
 		Title:   req.Title,
 		Content: req.Content,
 		Author: domain.Author{
@@ -71,7 +71,7 @@ func (ah *ArticleHandler) Edit(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	edit, err := ah.svc.Save(ctx, domain.Article{
+	edit, err := ah.svc.Save(ctx, &domain.Article{
 		Id:      req.Id,
 		Title:   req.Title,
 		Content: req.Content,
