@@ -13,26 +13,12 @@ type ArticleDao interface {
 	Update(context.Context, *Article) error
 	Sync(context.Context, Article) (int64, error)
 	Upsert(context.Context, *PublishedArticle) error
+	List(ctx context.Context, offset int, limit int) ([]Article, error)
 }
 
 type ArticleDaoImpl struct {
 	db     *gorm.DB
 	logger *zap.Logger
-}
-
-func NewArticleDao(db *gorm.DB, l *zap.Logger) ArticleDao {
-	if err := db.AutoMigrate(&Article{}); err != nil {
-		l.Error("初始化制作库失败", zap.Error(err))
-		return nil
-	}
-	if err := db.AutoMigrate(&PublishedArticle{}); err != nil {
-		l.Error("初始化线上库失败", zap.Error(err))
-		return nil
-	}
-	return &ArticleDaoImpl{
-		db:     db,
-		logger: l,
-	}
 }
 
 func (dao *ArticleDaoImpl) Insert(ctx context.Context, article *Article) (int64, error) {
@@ -91,6 +77,29 @@ func (dao *ArticleDaoImpl) Upsert(ctx context.Context, article *PublishedArticle
 				"update_time": article.UpdateTime,
 			}),
 		}).Create(&article).Error
+}
+
+func (dao *ArticleDaoImpl) List(ctx context.Context, offset int, limit int) ([]Article, error) {
+	articles := []Article{}
+	err := dao.db.WithContext(ctx).Model(&Article{}).
+		Offset(offset).Limit(limit).
+		Order("update_time desc").Find(&articles).Error
+	return articles, err
+}
+
+func NewArticleDao(db *gorm.DB, l *zap.Logger) ArticleDao {
+	if err := db.AutoMigrate(&Article{}); err != nil {
+		l.Error("初始化制作库失败", zap.Error(err))
+		return nil
+	}
+	if err := db.AutoMigrate(&PublishedArticle{}); err != nil {
+		l.Error("初始化线上库失败", zap.Error(err))
+		return nil
+	}
+	return &ArticleDaoImpl{
+		db:     db,
+		logger: l,
+	}
 }
 
 //

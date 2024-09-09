@@ -44,6 +44,8 @@ var UserProvider = wire.NewSet(
 
 var ArticleProvider = wire.NewSet(
 	article.NewArticleDao,
+	cache.NewRedisArticleCache,
+	wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)),
 	repository.NewArticleRepository,
 	service.NewArticleService,
 	handler.NewArticleHandler,

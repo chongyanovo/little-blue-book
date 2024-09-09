@@ -1,12 +1,14 @@
-package ginx
+package wrapper
 
 import (
+	"github.com/ChongYanOvO/little-blue-book/pkg/ginx/jwt"
+	"github.com/ChongYanOvO/little-blue-book/pkg/ginx/result"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-func WrapperBody[T any](l *zap.Logger, fn func(ctx *gin.Context, req T) (Result, error)) gin.HandlerFunc {
+func WrapperBody[T any](l *zap.Logger, fn func(ctx *gin.Context, req T) (result.Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
@@ -22,14 +24,14 @@ func WrapperBody[T any](l *zap.Logger, fn func(ctx *gin.Context, req T) (Result,
 		ctx.JSON(http.StatusOK, res)
 	}
 }
-func WrapperBodyWitJwt[T any](l *zap.Logger, fn func(ctx *gin.Context, req T, uc *UserClaims) (Result, error)) gin.HandlerFunc {
+func WrapperBodyWitJwt[T any](l *zap.Logger, fn func(ctx *gin.Context, req T, uc *jwt.UserClaims) (result.Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
 			return
 		}
-		var uc *UserClaims
-		uc, err := ExtractJwtClaims(ctx)
+		var uc *jwt.UserClaims
+		uc, err := jwt.ExtractJwtClaims(ctx)
 		if err != nil {
 			l.Error("获取UserClaims错误", zap.Error(err))
 			ctx.AbortWithStatus(http.StatusUnauthorized)

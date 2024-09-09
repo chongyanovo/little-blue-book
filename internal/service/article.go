@@ -12,6 +12,7 @@ type ArticleService interface {
 	Create(ctx context.Context, article *domain.Article) (int64, error)
 	Update(ctx context.Context, article *domain.Article) error
 	Publish(ctx context.Context, article *domain.Article) (int64, error)
+	List(ctx context.Context, offset int, limit int) ([]domain.Article, error)
 }
 
 type ArticleServiceImpl struct {
@@ -48,4 +49,8 @@ func (svc *ArticleServiceImpl) Save(ctx context.Context, article *domain.Article
 func (svc *ArticleServiceImpl) Publish(ctx context.Context, article *domain.Article) (int64, error) {
 	article.Status = domain.ArticleStatusPublished
 	return svc.repo.Sync(ctx, article)
+}
+
+func (svc *ArticleServiceImpl) List(ctx context.Context, offset int, limit int) ([]domain.Article, error) {
+	return svc.repo.List(ctx, offset, limit)
 }

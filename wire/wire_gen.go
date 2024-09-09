@@ -41,7 +41,8 @@ func InitApp() (core.Application, error) {
 	codeService := service.NewCodeService(codeRepository, smsService, logger)
 	userHandler := handler.NewUserHandler(userService, codeService, logger)
 	articleDao := article.NewArticleDao(db, logger)
-	articleRepository := repository.NewArticleRepository(articleDao, logger)
+	redisArticleCache := cache.NewRedisArticleCache(cmdable, logger)
+	articleRepository := repository.NewArticleRepository(articleDao, redisArticleCache, logger)
 	articleService := service.NewArticleService(articleRepository, logger)
 	articleHandler := handler.NewArticleHandler(articleService, logger)
 	engine := bootstrap.NewServer(v, userHandler, articleHandler)
@@ -61,7 +62,9 @@ func InitArticleHandler() (*handler.ArticleHandler, error) {
 	logger := bootstrap.NewZap(config)
 	db := bootstrap.NewMysql(config, logger)
 	articleDao := article.NewArticleDao(db, logger)
-	articleRepository := repository.NewArticleRepository(articleDao, logger)
+	cmdable := bootstrap.NewRedis(config)
+	redisArticleCache := cache.NewRedisArticleCache(cmdable, logger)
+	articleRepository := repository.NewArticleRepository(articleDao, redisArticleCache, logger)
 	articleService := service.NewArticleService(articleRepository, logger)
 	articleHandler := handler.NewArticleHandler(articleService, logger)
 	return articleHandler, nil
@@ -89,4 +92,4 @@ var BaseProvider = wire.NewSet(bootstrap.NewViper, bootstrap.NewConfig, bootstra
 
 var UserProvider = wire.NewSet(cache.NewCodeCache, cache.NewRedisUserCache, dao.NewUserDao, repository.NewCodeRepository, repository.NewUserRepository, sms.NewMemoryService, service.NewCodeService, service.NewUserService, handler.NewUserHandler)
 
-var ArticleProvider = wire.NewSet(article.NewArticleDao, repository.NewArticleRepository, service.NewArticleService, handler.NewArticleHandler)
+var ArticleProvider = wire.NewSet(article.NewArticleDao, cache.NewRedisArticleCache, wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)), repository.NewArticleRepository, service.NewArticleService, handler.NewArticleHandler)

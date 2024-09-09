@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/ChongYanOvO/little-blue-book/internal/domain"
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
-	"github.com/ChongYanOvO/little-blue-book/pkg/ginx"
+	"github.com/ChongYanOvO/little-blue-book/pkg/ginx/jwt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -123,7 +123,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 			ctx.String(http.StatusOK, "系统异常")
 		}
 	} else {
-		if err := ginx.SetJwtToken(ctx, user.Id, user.Email); err != nil {
+		if err := jwt.SetJwtToken(ctx, user.Id, user.Email); err != nil {
 			uh.logger.Error("jwt设置错误")
 			return
 		}
@@ -138,7 +138,7 @@ func (uh *UserHandler) Edit(ctx *gin.Context) {
 
 // Profile 用户详情
 func (uh *UserHandler) Profile(ctx *gin.Context) {
-	uc, err := ginx.ExtractJwtClaims(ctx)
+	uc, err := jwt.ExtractJwtClaims(ctx)
 	if err != nil {
 		ctx.String(http.StatusOK, "系统异常")
 	}
@@ -190,7 +190,7 @@ func (uh *UserHandler) LoginSms(ctx *gin.Context) {
 			ctx.String(http.StatusOK, "系统异常")
 			return
 		}
-		if err := ginx.SetJwtToken(ctx, u.Id, u.Email); err != nil {
+		if err := jwt.SetJwtToken(ctx, u.Id, u.Email); err != nil {
 			uh.logger.Error("jwt设置错误")
 		}
 		ctx.String(http.StatusOK, "登录成功")
