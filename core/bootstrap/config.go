@@ -10,6 +10,7 @@ type Config struct {
 	ServerConfig *ServerConfig `mapstructure:"server" json:"server" yaml:"server"`
 	ZapConfig    *ZapConfig    `mapstructure:"zap" json:"zap" yaml:"zap"`
 	MysqlConfig  *MysqlConfig  `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	MongoConfig  *MongoConfig  `mapstructure:"mongo" json:"mongo" yaml:"mongo"`
 	RedisConfig  *RedisConfig  `mapstructure:"redis" json:"redis" yaml:"redis"`
 	TokenConfig  *TokenConfig  `mapstructure:"token" json:"token" yaml:"token"`
 	CacheConfig  *CacheConfig  `mapstructure:"cache" json:"cache" yaml:"cache"`

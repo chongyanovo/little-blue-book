@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/ChongYanOvO/little-blue-book/internal/handler"
+	"github.com/ChongYanOvO/little-blue-book/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
@@ -31,13 +31,13 @@ func (l *LoginBuilder) Build() gin.HandlerFunc {
 			}
 		}
 
-		_, err := handler.ExtractToken(ctx)
+		_, err := ginx.ExtractToken(ctx)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		uc, err := handler.ExtractJwtClaims(ctx)
+		uc, err := ginx.ExtractJwtClaims(ctx)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -45,7 +45,7 @@ func (l *LoginBuilder) Build() gin.HandlerFunc {
 		now := time.Now()
 		if uc.ExpiresAt.Sub(now) < time.Minute {
 			uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
-			if err := handler.SetJwtToken(ctx, uc.Uid); err != nil {
+			if err := ginx.SetJwtToken(ctx, uc.Uid, uc.Email); err != nil {
 				ctx.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}

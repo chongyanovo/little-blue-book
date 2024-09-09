@@ -11,7 +11,7 @@ type ArticleService interface {
 	Save(ctx context.Context, article *domain.Article) (int64, error)
 	Create(ctx context.Context, article *domain.Article) (int64, error)
 	Update(ctx context.Context, article *domain.Article) error
-	Publish(ctx context.Context) error
+	Publish(ctx context.Context, article *domain.Article) (int64, error)
 }
 
 type ArticleServiceImpl struct {
@@ -35,16 +35,17 @@ func (svc *ArticleServiceImpl) Update(ctx context.Context, article *domain.Artic
 }
 
 func (svc *ArticleServiceImpl) Save(ctx context.Context, article *domain.Article) (int64, error) {
+	article.Status = domain.ArticleStatusUnpublished
 	if article.Id > 0 {
-		if err := svc.Update(ctx, article); err != nil {
+		if err := svc.repo.Update(ctx, article); err != nil {
 			svc.logger.Error("更新文章失败", zap.Error(err))
 		}
 		return article.Id, nil
 	}
-	return svc.Create(ctx, article)
+	return svc.repo.Create(ctx, article)
 }
 
-func (svc *ArticleServiceImpl) Publish(ctx context.Context) error {
-	//svc.authorRepo.Save()
-	return nil
+func (svc *ArticleServiceImpl) Publish(ctx context.Context, article *domain.Article) (int64, error) {
+	article.Status = domain.ArticleStatusPublished
+	return svc.repo.Sync(ctx, article)
 }

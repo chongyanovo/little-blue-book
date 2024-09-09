@@ -10,9 +10,11 @@ import (
 	"github.com/ChongYanOvO/little-blue-book/internal/repository"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/cache"
 	"github.com/ChongYanOvO/little-blue-book/internal/repository/dao"
+	"github.com/ChongYanOvO/little-blue-book/internal/repository/dao/article"
 	"github.com/ChongYanOvO/little-blue-book/internal/service"
 	"github.com/ChongYanOvO/little-blue-book/internal/service/sms"
 	"github.com/google/wire"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
 
@@ -20,9 +22,10 @@ var BaseProvider = wire.NewSet(
 	bootstrap.NewViper,
 	bootstrap.NewConfig,
 	bootstrap.NewMysql,
+	bootstrap.NewMongo,
 	bootstrap.NewRedis,
 	bootstrap.NewZap,
-	bootstrap.NewMiddleware,
+	bootstrap.NewMiddlewares,
 	bootstrap.NewServer,
 	core.NewApplication,
 )
@@ -40,7 +43,7 @@ var UserProvider = wire.NewSet(
 )
 
 var ArticleProvider = wire.NewSet(
-	dao.NewArticleDao,
+	article.NewArticleDao,
 	repository.NewArticleRepository,
 	service.NewArticleService,
 	handler.NewArticleHandler,
@@ -50,6 +53,7 @@ func InitApp() (core.Application, error) {
 	wire.Build(
 		BaseProvider,
 		UserProvider,
+		ArticleProvider,
 	)
 	return core.Application{}, nil
 }
@@ -78,4 +82,14 @@ func InitMysql() (*gorm.DB, error) {
 		bootstrap.NewZap,
 	)
 	return &gorm.DB{}, nil
+}
+
+func InitMongo() (*mongo.Database, error) {
+	wire.Build(
+		bootstrap.NewViper,
+		bootstrap.NewConfig,
+		bootstrap.NewMongo,
+		bootstrap.NewZap,
+	)
+	return &mongo.Database{}, nil
 }

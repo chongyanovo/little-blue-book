@@ -14,10 +14,13 @@ type ServerConfig struct {
 type Server gin.Engine
 
 // NewServer 创建server
-func NewServer(middlewares []gin.HandlerFunc, uh *handler.UserHandler) *gin.Engine {
+func NewServer(middlewares []gin.HandlerFunc,
+	uh *handler.UserHandler,
+	ah *handler.ArticleHandler) *gin.Engine {
 	server := gin.Default()
 
 	server.Use(middlewares...)
 	uh.RegisterRoutes(server)
+	ah.RegisterRoutes(server)
 	return server
 }

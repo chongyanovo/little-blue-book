@@ -17,6 +17,12 @@ port = 13306
 username = "root"
 password = "123456"
 database = "little-blue-book"
+[mongo]
+hostname = "127.0.0.1"
+port = 27017
+username = "root"
+password = "123456"
+database = "little-blue-book"
 [redis]
 host = "127.0.0.1"
 port = 6379
