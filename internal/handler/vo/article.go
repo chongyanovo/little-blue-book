@@ -31,3 +31,7 @@ type ListArticleRequest struct {
 	Offset int `json:"offset"`
 	Limit  int `json:"limit"`
 }
+
+type LikeArticleRequest struct {
+	Id int64 `json:"id"`
+}

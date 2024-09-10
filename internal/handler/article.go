@@ -15,14 +15,16 @@ import (
 var _ Handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
-	logger *zap.Logger
-	svc    service.ArticleService
+	logger         *zap.Logger
+	svc            service.ArticleService
+	interactiveSvc service.InteractiveService
 }
 
-func NewArticleHandler(svc service.ArticleService, l *zap.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, interactiveSvc service.InteractiveService, l *zap.Logger) *ArticleHandler {
 	return &ArticleHandler{
-		svc:    svc,
-		logger: l,
+		svc:            svc,
+		interactiveSvc: interactiveSvc,
+		logger:         l,
 	}
 }
 
@@ -32,6 +34,7 @@ func (ah *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	ag.POST("/edit", wrapper.WrapperBodyWitJwt[vo.EditArticleRequest](ah.logger, ah.Edit))
 	ag.POST("/publish", wrapper.WrapperBodyWitJwt[vo.PublishArticleRequest](ah.logger, ah.Publish))
 	ag.POST("/list", wrapper.WrapperBodyWitJwt[vo.ListArticleRequest](ah.logger, ah.List))
+	ag.POST("/like", wrapper.WrapperBodyWitJwt[vo.LikeArticleRequest](ah.logger, ah.Like))
 }
 
 func (ah *ArticleHandler) Save(ctx *gin.Context, req vo.CreateArticleRequest, uc *jwt.UserClaims) (result.Result, error) {
@@ -46,6 +49,13 @@ func (ah *ArticleHandler) Save(ctx *gin.Context, req vo.CreateArticleRequest, uc
 		ah.logger.Error("保存文章失败", zap.Error(err))
 		return result.FailWithMsg("保存文章失败"), err
 	}
+
+	go func() {
+		if er := ah.interactiveSvc.IncreaseReadCount(ctx, "article", articleId); er != nil {
+			ah.logger.Error("浏览量增加失败", zap.Error(er))
+		}
+	}()
+
 	return result.SuccessWithData("保存文章成功", articleId), err
 }
 
@@ -100,4 +110,13 @@ func (ah *ArticleHandler) List(ctx *gin.Context, req vo.ListArticleRequest, uc *
 	})
 
 	return result.SuccessWithData("获取文章列表成功", articleVos), nil
+}
+
+func (ah *ArticleHandler) Like(ctx *gin.Context, req vo.LikeArticleRequest, uc *jwt.UserClaims) (result.Result, error) {
+	err := ah.interactiveSvc.IncreaseLikeCount(ctx, "article", req.Id, uc.Uid)
+	if err != nil {
+		ah.logger.Error("点赞失败", zap.Error(err))
+		return result.FailWithMsg("点赞失败"), err
+	}
+	return result.SuccessWithMsg("点赞成功"), nil
 }

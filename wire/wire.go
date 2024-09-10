@@ -42,7 +42,19 @@ var UserProvider = wire.NewSet(
 	handler.NewUserHandler,
 )
 
+var InteractiveProvider = wire.NewSet(
+	cache.NewRedisInteractiveCache,
+	wire.Bind(new(cache.InteractiveCache), new(*cache.RedisInteractiveCache)),
+	dao.NewInteractiveDaoMysql,
+	wire.Bind(new(dao.InteractiveDao), new(*dao.InteractiveDaoMysql)),
+	repository.NewInteractiveRepositoryImpl,
+	wire.Bind(new(repository.InteractiveRepository), new(*repository.InteractiveRepositoryImpl)),
+	service.NewInteractiveServiceImpl,
+	wire.Bind(new(service.InteractiveService), new(*service.InteractiveServiceImpl)),
+)
+
 var ArticleProvider = wire.NewSet(
+	InteractiveProvider,
 	article.NewArticleDao,
 	cache.NewRedisArticleCache,
 	wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)),

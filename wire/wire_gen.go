@@ -44,7 +44,8 @@ func InitApp() (core.Application, error) {
 	redisArticleCache := cache.NewRedisArticleCache(cmdable, logger)
 	articleRepository := repository.NewArticleRepository(articleDao, redisArticleCache, logger)
 	articleService := service.NewArticleService(articleRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, logger)
+	interactiveServiceImpl := service.NewInteractiveServiceImpl()
+	articleHandler := handler.NewArticleHandler(articleService, interactiveServiceImpl, logger)
 	engine := bootstrap.NewServer(v, userHandler, articleHandler)
 	application := core.NewApplication(config, db, database, cmdable, logger, engine)
 	return application, nil
@@ -66,7 +67,8 @@ func InitArticleHandler() (*handler.ArticleHandler, error) {
 	redisArticleCache := cache.NewRedisArticleCache(cmdable, logger)
 	articleRepository := repository.NewArticleRepository(articleDao, redisArticleCache, logger)
 	articleService := service.NewArticleService(articleRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, logger)
+	interactiveServiceImpl := service.NewInteractiveServiceImpl()
+	articleHandler := handler.NewArticleHandler(articleService, interactiveServiceImpl, logger)
 	return articleHandler, nil
 }
 
@@ -92,4 +94,8 @@ var BaseProvider = wire.NewSet(bootstrap.NewViper, bootstrap.NewConfig, bootstra
 
 var UserProvider = wire.NewSet(cache.NewCodeCache, cache.NewRedisUserCache, dao.NewUserDao, repository.NewCodeRepository, repository.NewUserRepository, sms.NewMemoryService, service.NewCodeService, service.NewUserService, handler.NewUserHandler)
 
-var ArticleProvider = wire.NewSet(article.NewArticleDao, cache.NewRedisArticleCache, wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)), repository.NewArticleRepository, service.NewArticleService, handler.NewArticleHandler)
+var InteractiveProvider = wire.NewSet(cache.NewRedisInteractiveCache, wire.Bind(new(cache.InteractiveCache), new(*cache.RedisInteractiveCache)), dao.NewInteractiveDaoMysql, wire.Bind(new(dao.InteractiveDao), new(*dao.InteractiveDaoMysql)), repository.NewInteractiveRepositoryImpl, wire.Bind(new(repository.InteractiveRepository), new(*repository.InteractiveRepositoryImpl)), service.NewInteractiveServiceImpl, wire.Bind(new(service.InteractiveService), new(*service.InteractiveServiceImpl)))
+
+var ArticleProvider = wire.NewSet(
+	InteractiveProvider, article.NewArticleDao, cache.NewRedisArticleCache, wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)), repository.NewArticleRepository, service.NewArticleService, handler.NewArticleHandler,
+)
